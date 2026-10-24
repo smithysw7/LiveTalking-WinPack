@@ -15,6 +15,7 @@
 import json
 import time
 import io
+import os
 import asyncio
 import threading
 import numpy as np
@@ -53,9 +54,13 @@ def _load_sensevoice():
         )
 
         t0 = time.perf_counter()
+        # Prefer bundled local copies (models/asr/) so the package works offline;
+        # fall back to ModelScope ids which download on first use.
+        sensevoice_ref = "models/asr/SenseVoiceSmall" if os.path.isdir("models/asr/SenseVoiceSmall") else "iic/SenseVoiceSmall"
+        vad_ref = "models/asr/fsmn-vad" if os.path.isdir("models/asr/fsmn-vad") else "fsmn-vad"
         _sensevoice_model = AutoModel(
-            model="iic/SenseVoiceSmall",
-            vad_model="fsmn-vad",
+            model=sensevoice_ref,
+            vad_model=vad_ref,
             vad_kwargs={"max_single_segment_time": 30000},
             device=device,
             trust_remote_code=True,

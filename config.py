@@ -72,17 +72,21 @@ def parse_args():
 
     # ─── TTS ───────────────────────────────────────────────────────────
     parser.add_argument('--tts', type=str, default='edgetts',
-                        help="tts plugin: edgetts/gpt-sovits/cosyvoice/fishtts/tencent/doubao/indextts2/azuretts/qwentts")
+                        help="tts plugin: edgetts/qwen3tts/gpt-sovits/omnitts/tencent/doubao/azuretts/qwentts")
     parser.add_argument('--REF_FILE', type=str, default="zh-CN-YunxiaNeural",
-                        help="参考文件名或语音模型ID")
+                        help="参考文件名或语音模型ID（qwen3tts: 音色名或参考音频路径）")
     parser.add_argument('--REF_TEXT', type=str, default=None)
     parser.add_argument('--TTS_SERVER', type=str, default='http://127.0.0.1:9880')
+    parser.add_argument('--tts_model', type=str, default='models/qwen3-tts/1.7B-CustomVoice',
+                        help="qwen3tts 本地模型目录（CustomVoice=固定音色, Base=音色克隆）")
 
     # ─── LLM ──────────────────────────────────────────────────────────
-    parser.add_argument('--llm_provider', type=str, default='dashscope',
-                        help="llm provider: dashscope/orcarouter")
+    parser.add_argument('--llm_provider', type=str, default='localllm',
+                        help="llm provider: localllm/dashscope/deepseek/zhipu/custom/orcarouter")
     parser.add_argument('--llm_model', type=str, default='',
-                        help="llm model override, empty = provider default (qwen-plus / orcarouter/auto)")
+                        help="llm model override, empty = provider default")
+    parser.add_argument('--llm_system_prompt', type=str, default='',
+                        help="系统提示词，留空使用默认；也可用环境变量 LLM_SYSTEM_PROMPT")
 
     # ─── 传输 ─────────────────────────────────────────────────────────
     parser.add_argument('--transport', type=str, default='webrtc',

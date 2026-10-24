@@ -1,0 +1,88 @@
+╔══════════════════════════════════════════════════════════════╗
+║        LiveTalking AI 数字人 一键整合包（Windows 版）          ║
+║   本地大模型 Qwen3.5-9B + 本地语音合成 Qwen3-TTS + 实时口型    ║
+╚══════════════════════════════════════════════════════════════╝
+
+【快速开始】
+1. 双击「启动数字人.bat」
+2. 等待启动完成（首次启动模型加载约 1-3 分钟，控制台出现
+   "✅ 启动完成" 后会自动打开浏览器）
+3. 在打开的页面中点击「开始连接」，数字人出现后
+   在聊天输入框输入文字即可对话（大模型回复，数字人开口说话）
+
+【硬件要求】
+- NVIDIA 显卡，显存 ≥ 12GB（推荐 RTX 4060Ti / 5060Ti 及以上）
+- 内存 ≥ 16GB，硬盘剩余空间 ≥ 30GB
+- 需要 NVIDIA 显卡驱动（2024 年后的版本即可）
+
+【两种对话入口】
+- 文字对话+数字人播报：dashboard.html（启动自动打开）
+- 语音对话（对着麦克风说，数字人听懂后回答）：
+  浏览器打开 http://127.0.0.1:8010/webrtcapi-asr.html
+  （内置本地语音识别 SenseVoice，无需联网）
+
+【本地大模型（默认，完全离线可用）】
+- 模型：Qwen3.5-9B（阿里通义千问最新开源模型，Q4 量化）
+- 引擎：llama.cpp（GPU 加速），启动脚本自动拉起，端口 8765
+- 无需任何 API Key
+
+【更换为云端大模型（可选，效果更强）】
+1. 打开 .env 文件，填入对应厂商的 API Key 并取消注释，如：
+   DEEPSEEK_API_KEY=sk-xxxx
+2. 打开 config.yaml，将 llm_provider 改为对应名称：
+   localllm  → 内置本地大模型（默认）
+   dashscope → 阿里云百炼 qwen-plus
+   deepseek  → DeepSeek
+   zhipu     → 智谱 GLM
+   custom    → 任意 OpenAI 兼容接口（需配 LLM_BASE_URL）
+3. 重启程序
+
+【更换数字人音色（本地 Qwen3-TTS）】
+打开 config.yaml，修改 REF_FILE（改完重启）：
+  Vivian   活泼女声（默认）      Serena   温柔女声
+  Uncle_Fu 低沉男声              Dylan    北京男声
+  Eric     四川男声              Ryan     英文男声
+  Aiden    美式男声
+也支持音色克隆：下载 Qwen3-TTS-12Hz-1.7B-Base 模型放入
+models/qwen3-tts/，将 --tts_model 指向它，REF_FILE 填参考 wav 路径。
+
+【不想联网且没下载语音模型？】
+config.yaml 中把 tts 改为 edgetts（微软在线语音，免费但需联网）。
+
+【自定义人设】
+config.yaml 中修改 llm_system_prompt，例如：
+  llm_system_prompt: '你是名叫小雅的带货主播，回答热情简短'
+
+【常见问题】
+1. 启动时提示端口被占用：
+   - 修改 config.yaml 中的 listenport（如 8020）
+2. 页面打开后数字人不出现：
+   - 确认浏览器允许摄像头/麦克风弹窗（Webrtc 需要 https 或 localhost）
+   - 检查防火墙是否放行 8010 端口
+3. 大模型没反应：
+   - 查看 data/llama-server.log
+   - 显存不足时关闭其他占用显存的程序
+4. 说话没有声音/口型不动：
+   - 确认点击了「开始连接」并成功建立会话（管理后台 admin.html 可查看会话）
+
+【目录结构】
+  启动数字人.bat       一键启动入口
+  app.py               数字人服务主程序
+  config.yaml          全局配置（音色/大模型/端口等）
+  .env                 API Key 配置（重命名 .env.example 后生效）
+  launcher.py          启动器（自动拉起大模型+服务+浏览器）
+  runtime\python       内置 Python 3.12 运行环境（免安装）
+  bin\llama            本地大模型引擎 llama.cpp
+  models\llm           Qwen3.5-9B 本地大模型权重
+  models\qwen3-tts     Qwen3-TTS 语音合成模型
+  models\asr           SenseVoice 语音识别模型
+  data\avatars         数字人形象（wav2lip256 预处理数据）
+
+【API 对接】
+服务启动后提供 HTTP 接口，详见 docs/api.md，
+例如驱动数字人说话：
+  POST http://127.0.0.1:8010/human
+  {"text":"你好","type":"chat","sessionid":"0"}
+
+── 基于开源项目 LiveTalking (github.com/lipku/LiveTalking) 二次开发
+── 遵循 Apache 2.0 协议，商用请保留 LiveTalking 水印与标识
