@@ -72,7 +72,6 @@ class Qwen3TTS(BaseTTS):
                 dtype=dtype,
                 attn_implementation='sdpa',
             )
-            model.eval()
             Qwen3TTS._shared_models[self.model_ref] = model
             logger.info(f"[qwen3tts] model loaded in {time.time()-t:.1f}s")
             return model

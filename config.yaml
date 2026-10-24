@@ -17,8 +17,8 @@ batch_size: 16
 customvideo_config: ''
 
 # -------- TTS ----------------------------------------------------------
-tts: qwen3tts                 # qwen3tts(本地) / edgetts(在线) / gpt-sovits / omnitts / tencent / doubao / azuretts / qwentts
-REF_FILE: Vivian               # qwen3tts 音色名(Vivian/Serena/Uncle_Fu/Dylan/Eric/Ryan/Aiden) 或参考音频路径
+tts: edgetts                  # edgetts(默认,流畅) / qwen3tts(本地离线) / gpt-sovits / omnitts / tencent / doubao / azuretts / qwentts
+REF_FILE: zh-CN-YunxiaNeural   # edgetts 音色名；切换 qwen3tts 时改为 Vivian/Serena/Uncle_Fu 等
 REF_TEXT: ''                   # reference text for voice cloning (English or Chinese)
 TTS_SERVER: ''                 # TTS server URL, no trailing slash
 

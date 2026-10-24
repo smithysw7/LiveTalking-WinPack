@@ -1,6 +1,6 @@
 ╔══════════════════════════════════════════════════════════════╗
 ║        LiveTalking AI 数字人 一键整合包（Windows 版）          ║
-║   本地大模型 Qwen3.5-9B + 本地语音合成 Qwen3-TTS + 实时口型    ║
+║  本地大模型 Qwen3.5-9B + Qwen3-TTS 语音合成 + 实时口型同步     ║
 ╚══════════════════════════════════════════════════════════════╝
 
 【快速开始】
@@ -37,17 +37,17 @@
    custom    → 任意 OpenAI 兼容接口（需配 LLM_BASE_URL）
 3. 重启程序
 
-【更换数字人音色（本地 Qwen3-TTS）】
-打开 config.yaml，修改 REF_FILE（改完重启）：
-  Vivian   活泼女声（默认）      Serena   温柔女声
-  Uncle_Fu 低沉男声              Dylan    北京男声
-  Eric     四川男声              Ryan     英文男声
-  Aiden    美式男声
-也支持音色克隆：下载 Qwen3-TTS-12Hz-1.7B-Base 模型放入
-models/qwen3-tts/，将 --tts_model 指向它，REF_FILE 填参考 wav 路径。
-
-【不想联网且没下载语音模型？】
-config.yaml 中把 tts 改为 edgetts（微软在线语音，免费但需联网）。
+【语音合成方案说明】
+默认使用 edgetts（微软在线语音，免费、流畅、需联网）。
+完全离线时可切换内置的 Qwen3-TTS 本地合成（阿里最新开源 TTS）：
+  config.yaml 中改为：  tts: qwen3tts
+                        REF_FILE: Vivian
+  可选音色：Vivian 活泼女声 / Serena 温柔女声 / Uncle_Fu 低沉男声
+            Dylan 北京男声 / Eric 四川男声 / Ryan、Aiden 英文男声
+  注：本地合成在本级别显卡上速度约为实时的 1/2（每句话有数秒
+  延迟），追求流畅体验建议保持 edgetts。
+音色克隆（进阶）：下载 Qwen3-TTS-12Hz-1.7B-Base 模型放入
+models/qwen3-tts/，--tts_model 指向它，REF_FILE 填参考 wav 路径。
 
 【自定义人设】
 config.yaml 中修改 llm_system_prompt，例如：

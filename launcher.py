@@ -28,7 +28,7 @@ def load_cfg() -> dict:
             with open(p, encoding='utf-8') as f:
                 return yaml.safe_load(f) or {}
     except Exception as e:
-        print(f'[launcher] 读取 config.yaml 失败: {e}')
+        print(f'[launcher] 读取 config.yaml 失败: {e}', flush=True)
     return {}
 
 
@@ -58,15 +58,15 @@ def start_local_llm(cfg: dict):
     base = os.environ.get('LLM_BASE_URL') or f'http://127.0.0.1:{port}/v1'
 
     if not os.path.exists(exe) or not gguf:
-        print('[launcher] 未找到本地大模型（bin/llama/llama-server.exe 或 models/llm/*.gguf）')
-        print('           请在 .env 中改用云端 provider（dashscope/deepseek/zhipu/custom）')
+        print('[launcher] 未找到本地大模型（bin/llama/llama-server.exe 或 models/llm/*.gguf）', flush=True)
+        print('           请在 .env 中改用云端 provider（dashscope/deepseek/zhipu/custom）', flush=True)
         return None
 
     if http_ok(base.replace('/v1', '/health')):
-        print(f'[launcher] 本地大模型服务已在运行: {base}')
+        print(f'[launcher] 本地大模型服务已在运行: {base}', flush=True)
         return None
 
-    print(f'[launcher] 正在启动本地大模型: {os.path.basename(gguf)} (port {port})')
+    print(f'[launcher] 正在启动本地大模型: {os.path.basename(gguf)} (port {port})', flush=True)
     log = open(os.path.join(ROOT, 'data', 'llama-server.log'), 'a', encoding='utf-8')
     cmd = [
         exe,
@@ -83,13 +83,13 @@ def start_local_llm(cfg: dict):
     t0 = time.time()
     while time.time() - t0 < 180:
         if http_ok(base.replace('/v1', '/health')):
-            print(f'[launcher] 本地大模型就绪: {base} ({time.time()-t0:.0f}s)')
+            print(f'[launcher] 本地大模型就绪: {base} ({time.time()-t0:.0f}s)', flush=True)
             return proc
         if proc.poll() is not None:
-            print('[launcher] llama-server 启动失败，详见 data/llama-server.log')
+            print('[launcher] llama-server 启动失败，详见 data/llama-server.log', flush=True)
             return None
         time.sleep(1)
-    print('[launcher] 等待本地大模型超时（服务可能仍在加载，稍后仍可对话）')
+    print('[launcher] 等待本地大模型超时（服务可能仍在加载，稍后仍可对话）', flush=True)
     return proc
 
 
@@ -99,7 +99,7 @@ def main():
     provider = cfg.get('llm_provider', 'localllm')
 
     if http_ok(f'http://127.0.0.1:{listenport}/'):
-        print(f'[launcher] 数字人服务已在运行，直接打开页面')
+        print(f'[launcher] 数字人服务已在运行，直接打开页面', flush=True)
         webbrowser.open(f'http://127.0.0.1:{listenport}/dashboard.html')
         return
 
@@ -107,7 +107,7 @@ def main():
     if provider == 'localllm':
         llama_proc = start_local_llm(cfg)
 
-    print(f'[launcher] 启动数字人服务 (http://127.0.0.1:{listenport}) ...')
+    print(f'[launcher] 启动数字人服务 (http://127.0.0.1:{listenport}) ...', flush=True)
     app = subprocess.Popen([sys.executable, 'app.py'], cwd=ROOT)
 
     t0 = time.time()
@@ -115,14 +115,14 @@ def main():
         if http_ok(f'http://127.0.0.1:{listenport}/'):
             break
         if app.poll() is not None:
-            print('[launcher] 数字人服务启动失败，请查看上方日志')
+            print('[launcher] 数字人服务启动失败，请查看上方日志', flush=True)
             if llama_proc:
                 llama_proc.terminate()
             sys.exit(1)
         time.sleep(1)
 
     url = f'http://127.0.0.1:{listenport}/dashboard.html'
-    print(f'[launcher] ✅ 启动完成，正在打开浏览器: {url}')
+    print(f'[launcher] ✅ 启动完成，正在打开浏览器: {url}', flush=True)
     webbrowser.open(url)
 
     try:
@@ -130,7 +130,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        print('[launcher] 正在停止服务...')
+        print('[launcher] 正在停止服务...', flush=True)
         for p in (app, llama_proc):
             if p and p.poll() is None:
                 p.terminate()
@@ -140,7 +140,7 @@ def main():
                     p.wait(timeout=10)
                 except subprocess.TimeoutExpired:
                     p.kill()
-        print('[launcher] 已退出')
+        print('[launcher] 已退出', flush=True)
 
 
 if __name__ == '__main__':
