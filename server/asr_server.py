@@ -16,6 +16,7 @@ import json
 import time
 import io
 import os
+import subprocess
 import asyncio
 import threading
 import numpy as np
@@ -26,21 +27,95 @@ from utils.logger import logger
 
 # ─── Lazy Model Loader ────────────────────────────────────────────────────
 
+_asr_load_lock = threading.Lock()
+_asr_inference_lock = threading.Lock()
+
+DEFAULT_MING_ASR_DIR = 'models/ming-asr/asr-tiny'
+MING_ASR_PYTHON = 'bin/asr-python/python.exe'
+
+
+class _MingASRWorker:
+    """
+    Ming-3.0-ASR 常驻子进程客户端。
+
+    Ming-3.0-TTS 需要 transformers 4.46.x，Ming-3.0-ASR 需要 5.12.x，
+    二者无法共存于同一进程，因此 ASR 由独立解释器（bin/asr-python）
+    以子进程方式运行，见 server/asr_worker.py。
+    """
+    _proc = None
+    _disabled = False   # 显存不足等原因失败后，本次会话不再重试
+
+    @classmethod
+    def _start(cls):
+        import base64
+        if not os.path.isfile(MING_ASR_PYTHON):
+            raise FileNotFoundError(
+                f"{MING_ASR_PYTHON} 不存在（整合包缺失独立 ASR 运行环境）")
+        cls._proc = subprocess.Popen(
+            [MING_ASR_PYTHON, 'server/asr_worker.py', DEFAULT_MING_ASR_DIR, '.'],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            text=True, encoding='utf-8', bufsize=1,
+        )
+        # 等待模型加载完成（stdout 第一行 "ready"），日志走 stderr 直通控制台
+        deadline = time.time() + 600
+        while time.time() < deadline:
+            line = cls._proc.stdout.readline()
+            if not line:
+                raise RuntimeError("ASR worker exited during startup")
+            data = json.loads(line)
+            if data.get('text') == 'ready':
+                logger.info("[ASR] Ming-3.0-ASR worker ready")
+                return
+        raise TimeoutError("ASR worker startup timeout")
+
+    @classmethod
+    def transcribe(cls, audio_float32: np.ndarray, sample_rate: int) -> str:
+        import base64
+        if cls._disabled:
+            raise RuntimeError("Ming-ASR worker disabled for this session")
+        if cls._proc is None or cls._proc.poll() is not None:
+            with _asr_load_lock:
+                if cls._proc is None or cls._proc.poll() is not None:
+                    cls._start()
+        pcm = audio_float32.astype('<f4').tobytes()
+        req = json.dumps({
+            "audio_b64": base64.b64encode(pcm).decode('ascii'),
+            "sr": sample_rate,
+        })
+        cls._proc.stdin.write(req + '\n')
+        cls._proc.stdin.flush()
+        line = cls._proc.stdout.readline()
+        if not line:
+            raise RuntimeError("ASR worker died")
+        data = json.loads(line)
+        if 'error' in data:
+            raise RuntimeError(f"ASR worker error: {data['error']}")
+        logger.info(f"[ASR] worker inference {data.get('ms')}ms")
+        return data.get('text', '')
+
+
+def _run_ming_inference(audio_float32: np.ndarray, sample_rate: int):
+    """Transcribe a float32 mono waveform with Ming-3.0-ASR (worker process)."""
+    t0 = time.perf_counter()
+    with _asr_inference_lock:
+        text = _MingASRWorker.transcribe(audio_float32, sample_rate)
+    duration = len(audio_float32) / sample_rate
+    return text, (time.perf_counter() - t0) * 1000, duration
+
+
 _sensevoice_model = None
-_sensevoice_load_lock = threading.Lock()
-_sensevoice_inference_lock = threading.Lock()
 
 
 def _load_sensevoice():
     """
-    Load the SenseVoice model on first call (lazy singleton).
+    Fallback backend: Load the SenseVoice model on first call (lazy singleton).
     Concurrent first requests must share the same model initialization.
     """
     global _sensevoice_model
     if _sensevoice_model is not None:
         return _sensevoice_model
 
-    with _sensevoice_load_lock:
+    with _asr_load_lock:
         if _sensevoice_model is not None:
             return _sensevoice_model
 
@@ -74,7 +149,15 @@ def _load_sensevoice():
 
 def _run_inference(audio_float32: np.ndarray, sample_rate: int, use_itn: bool):
     """
-    Run SenseVoice inference on a float32 audio array.
+    Run ASR on a float32 audio array.
+
+    Backend selection (env ASR_BACKEND, default "ming"):
+      - "ming":       Ming-3.0-asr-tiny (Ant Group, MIT) in a separate worker
+                      process — better accuracy, but needs ~5GB VRAM and its
+                      kernels are tuned for datacenter GPUs; on consumer GPUs
+                      it may run slowly or OOM when other models are loaded.
+      - "sensevoice": SenseVoiceSmall via funasr — fast and lightweight.
+    Either way the other backend serves as an automatic fallback.
 
     This is a **blocking** call — always invoke from ``run_in_executor``.
 
@@ -83,6 +166,33 @@ def _run_inference(audio_float32: np.ndarray, sample_rate: int, use_itn: bool):
     tuple[str, float, float]
         (transcribed_text, inference_ms, audio_duration_s)
     """
+    backend = os.environ.get('ASR_BACKEND', 'ming').lower()
+    primary, secondary = (
+        (_run_ming_inference, _run_sensevoice_inference)
+        if backend != 'sensevoice' else
+        (_run_sensevoice_inference, _run_ming_inference)
+    )
+    t0 = time.perf_counter()
+    try:
+        if primary is _run_sensevoice_inference:
+            text, inference_ms, audio_duration_s = primary(audio_float32, sample_rate, use_itn)
+        else:
+            text, inference_ms, audio_duration_s = primary(audio_float32, sample_rate)
+        logger.info(f"[ASR] backend={'Ming-3.0-asr-tiny' if primary is _run_ming_inference else 'SenseVoice'}")
+        return text, inference_ms, audio_duration_s
+    except Exception as e:
+        logger.warning(f"[ASR] primary backend failed ({e}), falling back")
+        if primary is _run_ming_inference:
+            _MingASRWorker._disabled = True
+
+    if secondary is _run_sensevoice_inference:
+        text, inference_ms, audio_duration_s = secondary(audio_float32, sample_rate, use_itn)
+    else:
+        text, inference_ms, audio_duration_s = secondary(audio_float32, sample_rate)
+    return text, inference_ms, audio_duration_s
+
+
+def _run_sensevoice_inference(audio_float32: np.ndarray, sample_rate: int, use_itn: bool = False):
     import soundfile as sf
     from funasr.utils.postprocess_utils import rich_transcription_postprocess
 
@@ -94,7 +204,7 @@ def _run_inference(audio_float32: np.ndarray, sample_rate: int, use_itn: bool):
     wav_buf.seek(0)
 
     t0 = time.perf_counter()
-    with _sensevoice_inference_lock:
+    with _asr_inference_lock:
         res = model.generate(
             input=wav_buf,
             cache={},
@@ -264,7 +374,12 @@ async def asr_websocket_handler(request):
 # ─── Availability Check ───────────────────────────────────────────────────
 
 def is_funasr_available() -> bool:
-    """Return True if the ``funasr`` package is importable."""
+    """Return True if any local ASR backend (Ming or funasr) is importable."""
+    try:
+        import transformers  # noqa: F401
+        return True  # Ming-3.0-ASR shares the transformers stack
+    except ImportError:
+        pass
     try:
         import funasr  # noqa: F401
         return True

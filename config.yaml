@@ -17,10 +17,11 @@ batch_size: 16
 customvideo_config: ''
 
 # -------- TTS ----------------------------------------------------------
-tts: edgetts                  # edgetts(默认,流畅) / qwen3tts(本地离线) / gpt-sovits / omnitts / tencent / doubao / azuretts / qwentts
-REF_FILE: zh-CN-YunxiaNeural   # edgetts 音色名；切换 qwen3tts 时改为 Vivian/Serena/Uncle_Fu 等
+tts: mingtts                  # mingtts(默认,本地,支持克隆) / edgetts(在线,最流畅) / qwen3tts / gpt-sovits / tencent / doubao / azuretts / qwentts
+REF_FILE: ''                   # mingtts: 留空=默认音色; 填参考wav路径=克隆该声音; 填内置音色名切换官方音色; edgetts: 填微软音色名
 REF_TEXT: ''                   # reference text for voice cloning (English or Chinese)
 TTS_SERVER: ''                 # TTS server URL, no trailing slash
+tts_model: models/ming-tts/0.5B   # mingtts 本地模型目录
 
 # -------- LLM ----------------------------------------------------------
 llm_provider: localllm         # localllm(内置本地大模型) / dashscope / deepseek / zhipu / custom / orcarouter

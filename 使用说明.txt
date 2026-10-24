@@ -1,6 +1,6 @@
 ╔══════════════════════════════════════════════════════════════╗
 ║        LiveTalking AI 数字人 一键整合包（Windows 版）          ║
-║  本地大模型 Qwen3.5-9B + Qwen3-TTS 语音合成 + 实时口型同步     ║
+║ 本地大模型 Qwen3.5-9B + Ming3.0 语音合成/识别 + 实时口型同步   ║
 ╚══════════════════════════════════════════════════════════════╝
 
 【快速开始】
@@ -37,17 +37,22 @@
    custom    → 任意 OpenAI 兼容接口（需配 LLM_BASE_URL）
 3. 重启程序
 
-【语音合成方案说明】
-默认使用 edgetts（微软在线语音，免费、流畅、需联网）。
-完全离线时可切换内置的 Qwen3-TTS 本地合成（阿里最新开源 TTS）：
-  config.yaml 中改为：  tts: qwen3tts
-                        REF_FILE: Vivian
-  可选音色：Vivian 活泼女声 / Serena 温柔女声 / Uncle_Fu 低沉男声
-            Dylan 北京男声 / Eric 四川男声 / Ryan、Aiden 英文男声
-  注：本地合成在本级别显卡上速度约为实时的 1/2（每句话有数秒
-  延迟），追求流畅体验建议保持 edgetts。
-音色克隆（进阶）：下载 Qwen3-TTS-12Hz-1.7B-Base 模型放入
-models/qwen3-tts/，--tts_model 指向它，REF_FILE 填参考 wav 路径。
+【语音合成与声音克隆（Ming-3.0-TTS，蚂蚁集团开源，MIT 协议）】
+默认使用本地 Ming-3.0-TTS（models/ming-tts/0.5B），支持：
+  1. 默认音色：config.yaml 中 REF_FILE 留空即可
+  2. 声音克隆：把一段参考音频（wav，10~20秒，安静环境录制的清晰人声）
+     放到任意位置，config.yaml 中 REF_FILE 填该文件路径，例如：
+       REF_FILE: D:\myvoice\sample.wav
+     首次使用自动提取声纹（在原目录生成 sample.wav.spkemb.pt），
+     之后数字人全程使用该声音说话。
+  3. 官方内置音色：REF_FILE 填音色名（见 Ming-3.0 官方说明）
+提示：本地合成的语速约为实时的 80%（每句有 1~3 秒生成延迟）；
+  追求绝对流畅可在 config.yaml 中把 tts 改为 edgetts（需联网）。
+
+【语音识别（Ming-3.0-ASR，蚂蚁集团开源，MIT 协议）】
+语音对话默认使用 Ming-3.0-ASR（models/ming-asr/asr-tiny，独立进程
+运行、不与主程序抢占显存配置）。若显存不足它会自动回退到内置的
+SenseVoice 识别。可在 .env 中用 ASR_BACKEND=sensevoice 强制轻量模式。
 
 【自定义人设】
 config.yaml 中修改 llm_system_prompt，例如：

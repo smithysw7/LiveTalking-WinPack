@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# Local checkpoints and generated audio
+*.safetensors
+*.onnx
+output/
+
+# Verification artifacts
+smoke_out/
+alignment_manifest.json
+
+# Local development tests and release alignment tools
+/tests/
+/tools/verify_alignment.py
+/tools/reference_oracle.py
+/tools/smoke_test.py

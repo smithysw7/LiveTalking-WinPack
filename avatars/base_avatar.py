@@ -87,6 +87,8 @@ class BaseAvatar:
         self.render_event = Event()
 
         _tts_modules = {
+            'mingtts': 'tts.mingtts',
+            'qwen3tts': 'tts.qwen3tts',
             'edgetts': 'tts.edge',
             'gpt-sovits': 'tts.sovits',
             'xtts': 'tts.xtts',

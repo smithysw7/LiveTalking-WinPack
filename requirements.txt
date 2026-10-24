@@ -28,7 +28,8 @@ einops
 #lpips==0.1.3
 #imageio-ffmpeg
 
-transformers #==4.46.2
+# Ming-3.0-TTS 需要且仅支持 4.46.x（4.50+ 破坏其 KV-cache 生成循环）
+transformers==4.46.3
 edge_tts
 flask
 #flask_sockets
@@ -38,8 +39,15 @@ aiohttp_cors
 
 #ffmpeg-python
 #omegaconf
-diffusers
+diffusers==0.33.0
 accelerate
+
+# Ming-3.0-TTS 运行时（ming3tts-lib/ 依赖）
+x_transformers==2.9.2
+loguru
+inflect
+cn2an
+modelscope
 
 librosa
 openai

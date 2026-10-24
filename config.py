@@ -71,14 +71,14 @@ def parse_args():
                         help="custom action json")
 
     # ─── TTS ───────────────────────────────────────────────────────────
-    parser.add_argument('--tts', type=str, default='edgetts',
-                        help="tts plugin: edgetts/qwen3tts/gpt-sovits/omnitts/tencent/doubao/azuretts/qwentts")
-    parser.add_argument('--REF_FILE', type=str, default="zh-CN-YunxiaNeural",
-                        help="参考文件名或语音模型ID（qwen3tts: 音色名或参考音频路径）")
+    parser.add_argument('--tts', type=str, default='mingtts',
+                        help="tts plugin: mingtts/edgetts/qwen3tts/gpt-sovits/omnitts/tencent/doubao/azuretts/qwentts")
+    parser.add_argument('--REF_FILE', type=str, default="",
+                        help="参考文件名或音色（mingtts: 空=默认音色/wav路径=克隆/内置音色名; edgetts: 微软音色名）")
     parser.add_argument('--REF_TEXT', type=str, default=None)
     parser.add_argument('--TTS_SERVER', type=str, default='http://127.0.0.1:9880')
-    parser.add_argument('--tts_model', type=str, default='models/qwen3-tts/1.7B-CustomVoice',
-                        help="qwen3tts 本地模型目录（CustomVoice=固定音色, Base=音色克隆）")
+    parser.add_argument('--tts_model', type=str, default='models/ming-tts/0.5B',
+                        help="本地 TTS 模型目录（mingtts: Ming-3.0-tts; qwen3tts: Qwen3-TTS）")
 
     # ─── LLM ──────────────────────────────────────────────────────────
     parser.add_argument('--llm_provider', type=str, default='localllm',
