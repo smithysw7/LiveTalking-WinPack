@@ -28,6 +28,9 @@ llm_provider: localllm         # localllm(内置本地大模型) / dashscope / d
 llm_model: ''                  # model override, empty = provider default
 llm_system_prompt: ''          # 数字人人设提示词，留空使用默认
 
+# -------- 按需下载 ------------------------------------------------------
+auto_download: true           # 首次启动自动下载缺失组件（大模型/语音合成/形象；语音识别在首次语音对话时下载）
+
 # -------- Local LLM (llama.cpp) ---------------------------------------
 llm_port: 8765                 # 本地大模型服务端口
 llm_ctx_size: 8192             # 上下文长度

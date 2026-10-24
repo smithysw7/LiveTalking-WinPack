@@ -16,6 +16,7 @@ import json
 import time
 import io
 import os
+import sys
 import subprocess
 import asyncio
 import threading
@@ -47,10 +48,19 @@ class _MingASRWorker:
 
     @classmethod
     def _start(cls):
-        import base64
+        # 懒加载：首次语音对话时自动下载 ASR 组件（模型 + 独立环境，约 22GB）
+        if (not os.path.isfile(MING_ASR_PYTHON)) or (
+                not os.path.isdir(DEFAULT_MING_ASR_DIR)):
+            logger.info("[ASR] 首次使用语音识别：开始下载 Ming-3.0-ASR 与独立环境"
+                        "（约 22GB，视网速需数十分钟，期间本次请求会等待）...")
+            r = subprocess.run(
+                [sys.executable, 'setup_components.py', 'download', 'asr'],
+                cwd=os.getcwd())
+            if r.returncode != 0:
+                raise RuntimeError('ASR 组件自动下载失败，请检查网络或手动运行 '
+                                   'python setup_components.py download asr')
         if not os.path.isfile(MING_ASR_PYTHON):
-            raise FileNotFoundError(
-                f"{MING_ASR_PYTHON} 不存在（整合包缺失独立 ASR 运行环境）")
+            raise FileNotFoundError(f"{MING_ASR_PYTHON} 不存在")
         cls._proc = subprocess.Popen(
             [MING_ASR_PYTHON, 'server/asr_worker.py', DEFAULT_MING_ASR_DIR, '.'],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE,

@@ -3,7 +3,18 @@
 ║ 本地大模型 Qwen3.5-9B + Ming3.0 语音合成/识别 + 实时口型同步   ║
 ╚══════════════════════════════════════════════════════════════╝
 
-【快速开始】
+【快速开始 · 首次使用需联网下载组件】
+本包按需下载：仓库本身只有代码（约 20MB），首次运行时自动下载缺失组件
+  [env]    内嵌 Python 环境 + PyTorch（约 15GB 下载）
+  [llm]    Qwen3.5-9B 本地大模型（约 5.7GB）
+  [tts]    Ming-3.0-TTS 语音合成（约 3.8GB）
+  [avatar] wav2lip 口型模型 + 数字人形象（约 550MB）
+  [asr]    Ming-3.0-ASR 语音识别（约 22GB，★首次语音对话时才下载★）
+下载一次后即完全离线可用；不使用语音对话就永远不会下载 22GB 的识别模型。
+网络中断重新运行即可断点续传。也可手动控制：
+  runtime\python\python.exe setup_components.py status      查看状态
+  runtime\python\python.exe setup_components.py download asr 手动预下载识别
+
 1. 双击「启动数字人.bat」
 2. 等待启动完成（首次启动模型加载约 1-3 分钟，控制台出现
    "✅ 启动完成" 后会自动打开浏览器）

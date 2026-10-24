@@ -99,9 +99,37 @@ def main():
     provider = cfg.get('llm_provider', 'localllm')
 
     if http_ok(f'http://127.0.0.1:{listenport}/'):
-        print(f'[launcher] 数字人服务已在运行，直接打开页面', flush=True)
+        print('[launcher] 数字人服务已在运行，直接打开页面', flush=True)
         webbrowser.open(f'http://127.0.0.1:{listenport}/dashboard.html')
         return
+
+    # ── 按需下载：环境 + 必需组件（大模型/语音合成/数字人形象）──
+    import setup_components as sc
+    auto = cfg.get('auto_download', True)
+    missing = [c for c in ('llm', 'tts', 'avatar') if not sc.is_installed(c)]
+    if missing or not sc.is_installed('env'):
+        if auto:
+            print('[launcher] 首次使用，需要下载以下组件（下载一次，之后离线可用）：', flush=True)
+            for c in missing:
+                info, size = sc.COMPONENT_INFO[c]
+                print(f'    - {c}: {info}（{size}）', flush=True)
+            failed = sc.ensure_core(auto=True)
+            if failed:
+                print(f'[launcher] ❌ 组件下载失败：{failed}。'
+                      '请检查网络后重新运行，或在 .env 中设置 AUTO_DOWNLOAD=0 跳过。', flush=True)
+                sys.exit(1)
+        else:
+            print('[launcher] AUTO_DOWNLOAD=0，跳过组件下载。缺失组件：'
+                  f'{missing + (["env"] if not sc.is_installed("env") else [])}，'
+                  '可运行 python setup_components.py download <组件名> 手动安装', flush=True)
+
+    # 大模型缺失时，本地 provider 无法工作，给出明确指引
+    if provider == 'localllm' and not os.path.isfile(
+            os.path.join(ROOT, 'models', 'llm', 'Qwen3.5-9B-Q4_K_M.gguf')):
+        print('[launcher] 未检测到本地大模型且 llm_provider=localllm，无法对话。', flush=True)
+        print('    方案1: 重新运行本脚本并允许下载；方案2: 在 .env 配置云端 Key 并'
+              '在 config.yaml 把 llm_provider 改为 deepseek/dashscope/zhipu', flush=True)
+        sys.exit(1)
 
     llama_proc = None
     if provider == 'localllm':
